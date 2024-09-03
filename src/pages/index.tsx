@@ -1,118 +1,270 @@
+"use client"
+
 import Image from "next/image";
 import { Inter } from "next/font/google";
+import { useEffect, useRef, useState } from "react";
+import { HiMicrophone } from "react-icons/hi2";
+import { FaStopCircle } from "react-icons/fa";
+import { GrRefresh } from "react-icons/gr";
+import { motion, AnimatePresence } from 'framer-motion';
+import { RiRobot2Line } from "react-icons/ri";
+import { LuUser2 } from "react-icons/lu";
 
 const inter = Inter({ subsets: ["latin"] });
 
+interface AudioMessage {
+	audioData: string; // base64 encoded audio data
+	isUser: boolean;
+	timestamp: number;
+}
+
 export default function Home() {
-  return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+	const [isRecording, setIsRecording] = useState(false);
+	const [audioURL, setAudioURL] = useState<string | null>(null);
+	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+	const audioChunksRef = useRef<Blob[]>([]);
+	const [audioStore, setAudioStore] = useState<AudioMessage[]>([]);
+	const [generatingGptSpeech, setGeneratingGptSpeech] = useState(false);
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+	const startRecording = async () => {
+		if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+			// setError("Your browser doesn't support audio recording");
+			return;
+		}
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			const mediaRecorder = new MediaRecorder(stream);
+			mediaRecorderRef.current = mediaRecorder;
+			audioChunksRef.current = [];
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+			mediaRecorder.ondataavailable = (event) => {
+				audioChunksRef.current.push(event.data);
+			};
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
+			mediaRecorder.onstop = () => {
+				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+				const audioUrl = URL.createObjectURL(audioBlob);
+				setAudioURL(audioUrl);
+			};
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+			mediaRecorder.start();
+			setIsRecording(true);
+		} catch (error) {
+			console.error('Error accessing microphone. Please check your permissions.', error);
+			// setError('Error accessing microphone. Please check your permissions.');
+		}
+	};
+	// console.log(audioURL);
+
+	const stopRecording = () => {
+		if (mediaRecorderRef.current) {
+			mediaRecorderRef.current.stop();
+			setIsRecording(false)
+
+			mediaRecorderRef.current.onstop = async () => {
+				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+				const audioUrl = URL.createObjectURL(audioBlob);
+				setAudioURL(audioUrl);
+				
+				
+				// Immediately save the audio
+				await saveAudio(true, audioBlob);
+			};
+		}
+	};
+	console.log(audioURL);
+
+	useEffect(() => {
+		const storedAudio = JSON.parse(localStorage.getItem('audioStore') || '[]');
+		setAudioStore(storedAudio);
+	}, []);
+
+
+	const saveAudio = async(isUser: boolean, audioBlob: Blob) => {
+		try {
+			const reader = new FileReader();
+			reader.onloadend = async() => {
+				const base64AudioMessage = reader.result as string;
+				const newAudioMessage: AudioMessage = {
+					audioData: base64AudioMessage,
+					isUser: isUser,
+					timestamp: Date.now()
+				};
+				const updatedAudioStore = [...audioStore, newAudioMessage];
+				setAudioStore(updatedAudioStore);
+				localStorage.setItem('audioStore', JSON.stringify(updatedAudioStore));
+				setAudioURL(null);
+				setGeneratingGptSpeech(true)
+
+				// SEND TO SERVER
+				await fetch('/api/audio', {
+					method: 'POST',
+					body: base64AudioMessage,
+				})
+				.then(res => res.json())
+				.then(data => {
+					setGeneratingGptSpeech(false)
+					if(data.success && data.data === "Audio generated successfully"){
+						const responseAudio = {
+							audioData: data.audioData,
+							isUser: false,
+							timestamp: Date.now()
+						}
+						const currentStore = JSON.parse(localStorage.getItem('audioStore') || '[]');
+						const newStore = [...currentStore, responseAudio];
+						localStorage.setItem('audioStore', JSON.stringify(newStore));
+						setAudioStore(newStore);
+					}
+				})
+				.catch(error => {
+					setGeneratingGptSpeech(false)
+					console.error('Error saving audio:', error);
+				});
+			};
+			reader.readAsDataURL(audioBlob);
+		} 
+		catch (error) {
+			setGeneratingGptSpeech(false)
+			console.error('Error saving audio:', error);
+		}
+	};
+
+	const [canAutoplay, setCanAutoplay] = useState(false);
+	const latestAudioRef = useRef<HTMLAudioElement>(null);
+
+	useEffect(() => {
+		const lastAudio = audioStore[audioStore.length - 1];
+		if (lastAudio && !lastAudio.isUser && latestAudioRef.current && canAutoplay) {
+			latestAudioRef.current.play().catch(error => console.error("Autoplay failed:", error))
+		}
+	}, [audioStore, canAutoplay]);
+
+	const clearConversation = () => {
+		setAudioStore([]);
+		localStorage.removeItem('audioStore');
+	}
+
+	// fetch('/api/audio', {
+	// 	method: 'POST',
+	// 	body: 'hi',
+	// }).then(res => res.json()).then(data => {
+	// 	console.log(data);
+	// });
+
+	// fetch('/api/audio').then(res => res.json()).then(data => {
+	// 	console.log(data);
+	// });
+
+
+	return (
+		<main className={`h-screen flex flex-col items-center justify-between ${inter.className}`} >
+			<header className="sticky top-0 bg-white w-full text-center py-5 z-50">
+				<div className="flex flex-col md:flex-row gap-4 justify-between items-center max-w-xl mx-auto">
+					<h1 className="text-2xl font-bold text-[#0f172a]">VoiceGPT</h1>
+					<div className="flex items-center">
+						<input
+							type="checkbox"
+							id="autoplayCheckbox"
+							checked={canAutoplay}
+							onChange={(e) => setCanAutoplay(e.target.checked)}
+							className="mr-2"
+						/>
+						<label htmlFor="autoplayCheckbox">Enable autoplay</label>
+					</div>
+					<button className="bg-blue-500 hover:bg-blue-600 text-white p-2 px-4 rounded-3xl transition-all duration-300 ease-in-out transform hover:scale-105"
+						onClick={clearConversation}>Clear Conversation
+					</button>
+				</div>
+			</header>
+			<div className="h-screen  w-full md:w-1/2 max-w-lg p-5">
+				<div className='h-[50vh] 2xl:h-[60vh] overflow-y-auto'>
+					{
+						audioStore.length === 0 &&
+						<div className="flex justify-center items-center h-full">
+							<p className="text-gray-500">No conversations yet</p>
+						</div>
+					}
+					<AnimatePresence>
+						{
+							audioStore && audioStore?.map((audio: AudioMessage, index: number) => (
+								<motion.div 
+									key={audio.timestamp} 
+									className={`flex gap-2 items-center ${audio.isUser ? 'justify-end' : 'justify-start'} mb-4`}
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									exit={{ opacity: 0, y: -20 }}
+									transition={{ duration: 0.3 }}
+								>
+									{
+										!audio.isUser &&
+										<RiRobot2Line className="text-[#64748b]" size={20} />
+									}
+									{
+										!audio.isUser && index === audioStore.length - 1 && generatingGptSpeech &&
+										<div>
+											<p className="text-sm text-gray-500">Generating GPT response...</p>
+										</div>
+									}
+									<audio className="py-2 max-w-[70%]" src={audio.audioData} controls ref={index === audioStore.length - 1 ? latestAudioRef : null} />
+									
+									{
+										audio.isUser &&
+										<LuUser2 className="text-[#64748b]" size={20} />
+									}
+								</motion.div>
+							))
+						}
+						{
+							generatingGptSpeech && 
+							<div className="flex gap-2 items-center justify-start mb-4">
+								<RiRobot2Line className="text-[#64748b]" size={20} />
+								<div>
+									<p className="text-sm text-gray-500">Generating GPT response...</p>
+								</div>
+							</div>
+						}
+					</AnimatePresence>
+				</div>
+				<div className="bg-white shadow-lg fixed bottom-0 left-0 right-0 flex justify-center mx-auto py-7 border w-full transition-all duration-300 ease-in-out">
+					{
+						!isRecording && !audioURL && (
+							<div className="flex flex-col items-center">
+								<button 
+									onClick={startRecording}
+									className="bg-gray-300 hover:bg-blue-600 text-white rounded-full p-3 transition-all duration-300 ease-in-out transform hover:scale-110"
+								>
+									<HiMicrophone className="text-4xl" />
+								</button>
+								<p className="text-sm mt-2">Start Recording</p>
+							</div>
+						)
+					}
+					{
+						isRecording && (
+							<div className="flex flex-col items-center">
+								<button 
+									onClick={stopRecording}
+									className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 transition-all duration-300 ease-in-out transform hover:scale-110"
+							>
+								<FaStopCircle className="text-4xl" />
+							</button>
+							<p className="text-sm mt-2">Stop Recording</p>
+						</div>
+					)
+					}
+					{/* {
+						audioURL && 
+						<div className="flex items-center animate-fade-in w-11/12 justify-center space-x-2">
+							<audio src={audioURL} controls  />
+							<button className="bg-green-500 hover:bg-green-600 text-white p-2 px-4 rounded-3xl self-center transition-all duration-300 ease-in-out transform hover:scale-105" 
+								onClick={() => saveAudio(true)}>Save
+							</button>
+							<GrRefresh onClick={redoRecording} className="cursor-pointer text-gray-500" />
+						</div>
+					} */}
+				</div>
+			</div>
+		</main>
+	);
 }
