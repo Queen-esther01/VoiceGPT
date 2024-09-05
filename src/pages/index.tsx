@@ -9,7 +9,7 @@ import { GrRefresh } from "react-icons/gr";
 import { motion, AnimatePresence } from 'framer-motion';
 import { RiRobot2Line } from "react-icons/ri";
 import { LuUser2 } from "react-icons/lu";
-import { captureException, setContext } from "@sentry/nextjs";
+import { captureException, captureMessage, setContext } from "@sentry/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -69,6 +69,13 @@ export default function Home() {
 				const audioUrl = URL.createObjectURL(audioBlob);
 				setAudioURL(audioUrl);
 				// Immediately save the audio
+				captureMessage('RecorderStopped', {
+					level: "info",
+					extra: {
+						audioBlob: JSON.stringify(audioBlob),
+						audioUrl: JSON.stringify(audioUrl)
+					},
+				});
 				await saveAudio(true, audioBlob);
 			};
 		}
@@ -91,6 +98,12 @@ export default function Home() {
 					isUser: isUser,
 					timestamp: Date.now()
 				};
+				captureMessage('AudioMessage', {
+					level: "info",
+					extra: {
+						audioMessage: JSON.stringify(newAudioMessage),
+					},
+				});
 				const updatedAudioStore = [...audioStore, newAudioMessage];
 				setAudioStore(updatedAudioStore);
 				localStorage.setItem('audioStore', JSON.stringify(updatedAudioStore));
@@ -145,7 +158,7 @@ export default function Home() {
 				captureException(error)
 				console.error('Error saving audio:', error);
 			}
-			reader.readAsDataURL(audioBlob);
+			reader.readAsDataURL(audioBlob)
 		} 
 		catch (error) {
 			setGeneratingGptSpeech(false)
