@@ -6,6 +6,7 @@ import path from "path";
 import { Readable } from "stream";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import * as Sentry from "@sentry/nextjs";
 import os from 'os';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -69,6 +70,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 				return transcription.text
 			}).catch(error => {
 				console.error('Error processing audio:', error);
+				Sentry.setContext("Transcription Error", {
+					user: 'User',
+					error: JSON.stringify(error),
+					audioFromFrontend: JSON.stringify(audio)
+				});
+				Sentry.captureException(error)
 				res.status(500).json({ success: false, data: 'Error processing audio' });
 			});
 
@@ -83,6 +90,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 				return res.choices[0].message.content
             }).catch(error => {
 				console.error('Error processing chat completion:', error);
+				Sentry.setContext("Chat Completion Error", {
+					user: 'User-To-GPT',
+					error: JSON.stringify(error),
+					audioFromFrontend: JSON.stringify(audio)
+				});
+				Sentry.captureException(error)
 				res.status(500).json({ success: false, data: 'Error processing chat completion' });
 			});
 
@@ -108,6 +121,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 					});
 				}
 			} catch (error) {
+				Sentry.setContext("TTS Error", {
+					user: 'GPT-To-TTS',
+					error: JSON.stringify(error),
+					audioFromFrontend: JSON.stringify(audio)
+				});
+				Sentry.captureException(error)
 				res.status(500).json({ success: false, data: 'Error generating audio' });
 			}
 
