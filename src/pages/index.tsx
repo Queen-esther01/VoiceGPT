@@ -99,7 +99,6 @@ export default function Home() {
 					isUser: isUser,
 					timestamp: Date.now()
 				};
-				console.log(newAudioMessage)
 				Sentry.captureMessage('AudioMessage', {
 					level: "info",
 					extra: {
