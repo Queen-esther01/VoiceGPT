@@ -9,6 +9,7 @@ import { GrRefresh } from "react-icons/gr";
 import { motion, AnimatePresence } from 'framer-motion';
 import { RiRobot2Line } from "react-icons/ri";
 import { LuUser2 } from "react-icons/lu";
+import { captureException, setContext } from "@sentry/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,6 +52,7 @@ export default function Home() {
 			mediaRecorder.start();
 			setIsRecording(true);
 		} catch (error) {
+			captureException(error)
 			console.error('Error accessing microphone. Please check your permissions.', error);
 			// setError('Error accessing microphone. Please check your permissions.');
 		}
@@ -66,8 +68,6 @@ export default function Home() {
 				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
 				const audioUrl = URL.createObjectURL(audioBlob);
 				setAudioURL(audioUrl);
-				
-				
 				// Immediately save the audio
 				await saveAudio(true, audioBlob);
 			};
@@ -116,12 +116,35 @@ export default function Home() {
 						localStorage.setItem('audioStore', JSON.stringify(newStore));
 						setAudioStore(newStore);
 					}
+					else{
+						setGeneratingGptSpeech(false)
+						setContext("TTS Error", {
+							user: isUser ? 'User' : 'GPT',
+							error: JSON.stringify(data),
+							audioMessage: JSON.stringify(newAudioMessage)
+						});
+						captureException(data)
+					}
 				})
 				.catch(error => {
 					setGeneratingGptSpeech(false)
+					setContext("TTS Error", {
+						user: isUser ? 'User' : 'GPT',
+						error: JSON.stringify(error)
+					});
+					captureException(error)
 					console.error('Error saving audio:', error);
 				});
 			};
+			reader.onerror = (error) => {
+				setGeneratingGptSpeech(false)
+				setContext(`Saving ${isUser ? 'User' : 'GPT'} Audio Error`, {
+					user: isUser ? 'User' : 'GPT',
+					error: JSON.stringify(error)
+				});
+				captureException(error)
+				console.error('Error saving audio:', error);
+			}
 			reader.readAsDataURL(audioBlob);
 		} 
 		catch (error) {

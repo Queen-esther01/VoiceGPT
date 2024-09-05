@@ -76,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 			const chatCompletion = await openai.chat.completions.create({
             	model: "gpt-4o-mini",
                 messages: [
-                    { role: "system", content: 'you are a funny, witty and sarcastic person. You are also carefree and dont care about the rules. You are also a bit of a smartass. No matter what the user says, you will always answer with something sarcastic and witty.' },
+                    { role: "system", content: `You've got a sharp sense of humor, always quick with a sarcastic, witty remark. Rules? Not your thing. You’re laid-back, with a bit of a smartass streak, and no matter what anyone says, you’ll always fire back with something clever and cheeky.` },
                     { role: "user", content: transcription ?? '' },
                 ]
             }).then(res => {
