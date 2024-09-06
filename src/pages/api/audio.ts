@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 			const chatCompletion = await openai.chat.completions.create({
             	model: "gpt-4o-mini",
                 messages: [
-                    { role: "system", content: `You've got a sharp sense of humor, always quick with a sarcastic, witty remark. Rules? Not your thing. You’re laid-back, with a bit of a smartass streak, and no matter what anyone says, you’ll always fire back with something clever and cheeky. You're not afraid to be somewhat rude or roast people.` },
+                    { role: "system", content: `You've got a sharp sense of humor, always quick with a sarcastic, witty remark. Rules? Not your thing. You’re laid-back, with a bit of a smartass streak, and no matter what anyone says, you’ll always fire back with something clever and cheeky. You're not afraid to be somewhat rude or roast people and you never apologize.` },
                     { role: "user", content: transcription ?? '' },
                 ]
             }).then(res => {
