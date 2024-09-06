@@ -195,7 +195,7 @@ export default function Home() {
 			console.error('Error saving audio:', error);
 		}
 	};
-	
+
 
 	const [canAutoplay, setCanAutoplay] = useState(false);
 	const latestAudioRef = useRef<HTMLAudioElement>(null);
@@ -216,121 +216,129 @@ export default function Home() {
 
 
 	return (
-		<main className={`h-screen flex flex-col items-center justify-between ${inter.className}`} >
-			{
-				showToast &&
-				<div onClick={() => setShowToast(false)} className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
-					<div className="bg-white p-4 mx-10 rounded-lg">
-						<p className="text-red-500">You have reached the maximum number of messages, clear conversation.</p>
-					</div>
-				</div>
-			}
-			<header className="sticky top-0 bg-white w-full text-center py-5 z-50">
-				<div className="flex flex-col md:flex-row gap-4 justify-between items-center max-w-xl mx-auto">
-					<h1 className="text-2xl font-bold text-[#0f172a]">VoiceGPT</h1>
-					<div className="flex items-center">
-						<input
-							type="checkbox"
-							id="autoplayCheckbox"
-							checked={canAutoplay}
-							onChange={(e) => setCanAutoplay(e.target.checked)}
-							className="mr-2"
-						/>
-						<label htmlFor="autoplayCheckbox">Enable autoplay</label>
-					</div>
-					<button className="bg-blue-500 hover:bg-blue-600 text-white p-2 px-4 rounded-3xl transition-all duration-300 ease-in-out transform hover:scale-105"
-						onClick={clearConversation}>Clear Conversation
-					</button>
-				</div>
-			</header>
-			<div className="h-screen  w-full md:w-1/2 max-w-lg p-5">
-				<div ref={containerRef}  className='h-[50vh] 2xl:h-[60vh] overflow-y-auto'>
-					{
-						audioStore.length === 0 &&
-						<div className="flex justify-center items-center h-full">
-							<p className="text-gray-500">No conversations yet</p>
+		<>
+			<head>
+				<title>Speak With GPT</title>
+				<meta name="description" content="Speak with GPT allows you to speak with GPT and get a response in audio format." />
+				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<link rel="icon" href="/favicon.ico" />
+			</head>
+			<main className={`h-screen flex flex-col items-center justify-between ${inter.className}`} >
+				{
+					showToast &&
+					<div onClick={() => setShowToast(false)} className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
+						<div className="bg-white p-4 mx-10 rounded-lg">
+							<p className="text-red-500">You have reached the maximum number of messages, clear conversation.</p>
 						</div>
-					}
-					<AnimatePresence>
+					</div>
+				}
+				<header className="sticky top-0 bg-white w-full text-center py-5 z-50">
+					<div className="flex flex-col md:flex-row gap-4 justify-between items-center max-w-xl mx-auto">
+						<h1 className="text-2xl font-bold text-[#0f172a]">VoiceGPT</h1>
+						<div className="flex items-center">
+							<input
+								type="checkbox"
+								id="autoplayCheckbox"
+								checked={canAutoplay}
+								onChange={(e) => setCanAutoplay(e.target.checked)}
+								className="mr-2"
+							/>
+							<label htmlFor="autoplayCheckbox">Enable autoplay</label>
+						</div>
+						<button className="bg-blue-500 hover:bg-blue-600 text-white p-2 px-4 rounded-3xl transition-all duration-300 ease-in-out transform hover:scale-105"
+							onClick={clearConversation}>Clear Conversation
+						</button>
+					</div>
+				</header>
+				<div className="h-screen  w-full md:w-1/2 max-w-lg p-5">
+					<div ref={containerRef}  className='h-[50vh] 2xl:h-[60vh] overflow-y-auto'>
 						{
-							audioStore && audioStore?.map((audio: AudioMessage, index: number) => (
-								<motion.div 
-									key={audio.timestamp} 
-									className={`flex gap-2 items-center ${audio.isUser ? 'justify-end' : 'justify-start'} mb-4`}
-									initial={{ opacity: 0, y: 20 }}
-									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: -20 }}
-									transition={{ duration: 0.3 }}
-								>
-									{
-										!audio.isUser &&
-										<RiRobot2Line className="text-[#64748b]" size={20} />
-									}
-									{
-										!audio.isUser && index === audioStore.length - 1 && generatingGptSpeech &&
-										<div>
-											<p className="text-sm text-gray-500">Generating GPT response...</p>
-										</div>
-									}
-									<audio className="py-2 max-w-[70%]" src={audio.audioData} controls ref={index === audioStore.length - 1 ? latestAudioRef : null} />
-									
-									{
-										audio.isUser &&
-										<LuUser2 className="text-[#64748b]" size={20} />
-									}
-								</motion.div>
-							))
-						}
-						{
-							generatingGptSpeech && 
-							<div className="flex gap-2 items-center justify-start mb-4">
-								<RiRobot2Line className="text-[#64748b]" size={20} />
-								<div>
-									<p className="text-sm text-gray-500">Generating GPT response...</p>
-								</div>
+							audioStore.length === 0 &&
+							<div className="flex justify-center items-center h-full">
+								<p className="text-gray-500">No conversations yet</p>
 							</div>
 						}
-					</AnimatePresence>
-				</div>
-				<div className="bg-white shadow-lg fixed bottom-0 left-0 right-0 flex justify-center mx-auto py-7 border w-full transition-all duration-300 ease-in-out">
-					{
-						!isRecording && !audioURL && (
-							<div className="flex flex-col items-center">
-								<button 
-									onClick={startRecording}
-									className="bg-gray-300 hover:bg-blue-600 text-white rounded-full p-3 transition-all duration-300 ease-in-out transform hover:scale-110"
+						<AnimatePresence>
+							{
+								audioStore && audioStore?.map((audio: AudioMessage, index: number) => (
+									<motion.div 
+										key={audio.timestamp} 
+										className={`flex gap-2 items-center ${audio.isUser ? 'justify-end' : 'justify-start'} mb-4`}
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -20 }}
+										transition={{ duration: 0.3 }}
+									>
+										{
+											!audio.isUser &&
+											<RiRobot2Line className="text-[#64748b]" size={20} />
+										}
+										{
+											!audio.isUser && index === audioStore.length - 1 && generatingGptSpeech &&
+											<div>
+												<p className="text-sm text-gray-500">Generating GPT response...</p>
+											</div>
+										}
+										<audio className="py-2 max-w-[70%]" src={audio.audioData} controls ref={index === audioStore.length - 1 ? latestAudioRef : null} />
+										
+										{
+											audio.isUser &&
+											<LuUser2 className="text-[#64748b]" size={20} />
+										}
+									</motion.div>
+								))
+							}
+							{
+								generatingGptSpeech && 
+								<div className="flex gap-2 items-center justify-start mb-4">
+									<RiRobot2Line className="text-[#64748b]" size={20} />
+									<div>
+										<p className="text-sm text-gray-500">Generating GPT response...</p>
+									</div>
+								</div>
+							}
+						</AnimatePresence>
+					</div>
+					<div className="bg-white shadow-lg fixed bottom-0 left-0 right-0 flex justify-center mx-auto py-7 border w-full transition-all duration-300 ease-in-out">
+						{
+							!isRecording && !audioURL && (
+								<div className="flex flex-col items-center">
+									<button 
+										onClick={startRecording}
+										className="bg-gray-300 hover:bg-blue-600 text-white rounded-full p-3 transition-all duration-300 ease-in-out transform hover:scale-110"
+									>
+										<HiMicrophone className="text-4xl" />
+									</button>
+									<p className="text-sm mt-2">Start Recording</p>
+								</div>
+							)
+						}
+						{
+							isRecording && (
+								<div className="flex flex-col items-center">
+									<button 
+										onClick={stopRecording}
+										className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 transition-all duration-300 ease-in-out transform hover:scale-110"
 								>
-									<HiMicrophone className="text-4xl" />
+									<FaStopCircle className="text-4xl" />
 								</button>
-								<p className="text-sm mt-2">Start Recording</p>
+								<p className="text-sm mt-2">Stop Recording</p>
 							</div>
 						)
-					}
-					{
-						isRecording && (
-							<div className="flex flex-col items-center">
-								<button 
-									onClick={stopRecording}
-									className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 transition-all duration-300 ease-in-out transform hover:scale-110"
-							>
-								<FaStopCircle className="text-4xl" />
-							</button>
-							<p className="text-sm mt-2">Stop Recording</p>
-						</div>
-					)
-					}
-					{/* {
-						audioURL && 
-						<div className="flex items-center animate-fade-in w-11/12 justify-center space-x-2">
-							<audio src={audioURL} controls  />
-							<button className="bg-green-500 hover:bg-green-600 text-white p-2 px-4 rounded-3xl self-center transition-all duration-300 ease-in-out transform hover:scale-105" 
-								onClick={() => saveAudio(true)}>Save
-							</button>
-							<GrRefresh onClick={redoRecording} className="cursor-pointer text-gray-500" />
-						</div>
-					} */}
+						}
+						{/* {
+							audioURL && 
+							<div className="flex items-center animate-fade-in w-11/12 justify-center space-x-2">
+								<audio src={audioURL} controls  />
+								<button className="bg-green-500 hover:bg-green-600 text-white p-2 px-4 rounded-3xl self-center transition-all duration-300 ease-in-out transform hover:scale-105" 
+									onClick={() => saveAudio(true)}>Save
+								</button>
+								<GrRefresh onClick={redoRecording} className="cursor-pointer text-gray-500" />
+							</div>
+						} */}
+					</div>
 				</div>
-			</div>
-		</main>
+			</main>
+		</>
 	);
 }
