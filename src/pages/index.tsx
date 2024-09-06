@@ -1,11 +1,9 @@
 "use client"
 
-import Image from "next/image";
 import { Inter } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import { HiMicrophone } from "react-icons/hi2";
 import { FaStopCircle } from "react-icons/fa";
-import { GrRefresh } from "react-icons/gr";
 import { motion, AnimatePresence } from 'framer-motion';
 import { RiRobot2Line } from "react-icons/ri";
 import { LuUser2 } from "react-icons/lu";
@@ -20,12 +18,31 @@ interface AudioMessage {
 }
 
 export default function Home() {
-	const [isRecording, setIsRecording] = useState(false);
-	const [audioURL, setAudioURL] = useState<string | null>(null);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const audioChunksRef = useRef<Blob[]>([]);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const beepAudioRef = useRef<HTMLAudioElement | null>(null);
+
+	const [isRecording, setIsRecording] = useState(false);
+	const [audioURL, setAudioURL] = useState<string | null>(null);
 	const [audioStore, setAudioStore] = useState<AudioMessage[]>([]);
 	const [generatingGptSpeech, setGeneratingGptSpeech] = useState(false);
+
+	useEffect(() => {
+		if (containerRef.current) {
+			containerRef.current.scrollTop = containerRef.current.scrollHeight;
+		}
+	}, [audioStore]);
+
+	useEffect(() => {
+		beepAudioRef.current = new Audio('/beep.mp3'); // Adjust the path as needed
+	}, []);
+
+	const playBeep = () => {
+		if (beepAudioRef.current) {
+			beepAudioRef.current.play().catch(error => console.error('Error playing beep:', error));
+		}
+	};
 
 	const startRecording = async () => {
 		if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -51,10 +68,10 @@ export default function Home() {
 
 			mediaRecorder.start();
 			setIsRecording(true);
+			playBeep()
 		} catch (error) {
 			Sentry.captureException(error)
 			console.error('Error accessing microphone. Please check your permissions.', error);
-			// setError('Error accessing microphone. Please check your permissions.');
 		}
 	};
 	// console.log(audioURL);
@@ -80,7 +97,6 @@ export default function Home() {
 			};
 		}
 	};
-	console.log(audioURL);
 
 	useEffect(() => {
 		const storedAudio = JSON.parse(localStorage.getItem('audioStore') || '[]');
@@ -88,8 +104,19 @@ export default function Home() {
 		setCanAutoplay(true)
 	}, []);
 
+	const [showToast, setShowToast] = useState(false);
 
+	console.log(audioURL)
 	const saveAudio = async(isUser: boolean, audioBlob: Blob) => {
+		if(audioStore.length > 17){
+			setShowToast(true)
+			setIsRecording(false)
+			setAudioURL(null)
+			setTimeout(() => {
+				setShowToast(false)
+			}, 3000);
+			return
+		}
 		try {
 			const reader = new FileReader();
 			reader.onloadend = async() => {
@@ -148,6 +175,7 @@ export default function Home() {
 					});
 					Sentry.captureException(error)
 					console.error('Error saving audio:', error);
+					console.log(error)
 				});
 			};
 			reader.onerror = (error) => {
@@ -167,9 +195,11 @@ export default function Home() {
 			console.error('Error saving audio:', error);
 		}
 	};
+	
 
 	const [canAutoplay, setCanAutoplay] = useState(false);
 	const latestAudioRef = useRef<HTMLAudioElement>(null);
+
 
 	useEffect(() => {
 		const lastAudio = audioStore[audioStore.length - 1];
@@ -183,20 +213,18 @@ export default function Home() {
 		localStorage.removeItem('audioStore');
 	}
 
-	// fetch('/api/audio', {
-	// 	method: 'POST',
-	// 	body: 'hi',
-	// }).then(res => res.json()).then(data => {
-	// 	console.log(data);
-	// });
-
-	// fetch('/api/audio').then(res => res.json()).then(data => {
-	// 	console.log(data);
-	// });
 
 
 	return (
 		<main className={`h-screen flex flex-col items-center justify-between ${inter.className}`} >
+			{
+				showToast &&
+				<div onClick={() => setShowToast(false)} className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white p-4 mx-10 rounded-lg">
+						<p className="text-red-500">You have reached the maximum number of messages, clear conversation.</p>
+					</div>
+				</div>
+			}
 			<header className="sticky top-0 bg-white w-full text-center py-5 z-50">
 				<div className="flex flex-col md:flex-row gap-4 justify-between items-center max-w-xl mx-auto">
 					<h1 className="text-2xl font-bold text-[#0f172a]">VoiceGPT</h1>
@@ -216,7 +244,7 @@ export default function Home() {
 				</div>
 			</header>
 			<div className="h-screen  w-full md:w-1/2 max-w-lg p-5">
-				<div className='h-[50vh] 2xl:h-[60vh] overflow-y-auto'>
+				<div ref={containerRef}  className='h-[50vh] 2xl:h-[60vh] overflow-y-auto'>
 					{
 						audioStore.length === 0 &&
 						<div className="flex justify-center items-center h-full">
