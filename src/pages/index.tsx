@@ -112,7 +112,6 @@ export default function Home() {
 	useEffect(() => {
 		const storedAudio = JSON.parse(localStorage.getItem('audioStore') || '[]');
 		setAudioStore(storedAudio);
-		setCanAutoplay(true)
 	}, []);
 
 	const [showToast, setShowToast] = useState(false);
