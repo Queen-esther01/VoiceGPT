@@ -52,8 +52,7 @@ export default function Home() {
 
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-			const options = { mimeType: 'audio/webm;codecs=opus' };
-			const mediaRecorder = new MediaRecorder(stream, options);
+			const mediaRecorder = new MediaRecorder(stream);
 			mediaRecorderRef.current = mediaRecorder;
 			audioChunksRef.current = [];
 
@@ -64,7 +63,7 @@ export default function Home() {
 			};
 
 			mediaRecorder.onstop = () => {
-				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
 				const audioUrl = URL.createObjectURL(audioBlob);
 				setAudioURL(audioUrl);
 			};
