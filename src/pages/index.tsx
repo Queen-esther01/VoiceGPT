@@ -52,16 +52,19 @@ export default function Home() {
 
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-			const mediaRecorder = new MediaRecorder(stream);
+			const options = { mimeType: 'audio/webm;codecs=opus' };
+			const mediaRecorder = new MediaRecorder(stream, options);
 			mediaRecorderRef.current = mediaRecorder;
 			audioChunksRef.current = [];
 
 			mediaRecorder.ondataavailable = (event) => {
-				audioChunksRef.current.push(event.data);
+				if (event.data.size > 0) {
+					audioChunksRef.current.push(event.data);
+				}
 			};
 
 			mediaRecorder.onstop = () => {
-				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+				const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
 				const audioUrl = URL.createObjectURL(audioBlob);
 				setAudioURL(audioUrl);
 			};
@@ -217,12 +220,6 @@ export default function Home() {
 
 	return (
 		<>
-			<head>
-				<title>Speak With GPT</title>
-				<meta name="description" content="Speak with GPT allows you to speak with GPT and get a response in audio format." />
-				<meta name="viewport" content="width=device-width, initial-scale=1" />
-				<link rel="icon" href="/favicon.ico" />
-			</head>
 			<main className={`h-screen flex flex-col items-center justify-between ${inter.className}`} >
 				{
 					showToast &&

@@ -18,6 +18,10 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <style>{globalStyles}</style>
+				<title>Speak With GPT</title>
+				<meta name="description" content="Speak with GPT allows you to speak with GPT and get a response in audio format." />
+				<meta name="viewport" content="width=device-width, initial-scale=1" />
+				<link rel="icon" href="/favicon.ico" />
       </Head>
       <Component {...pageProps} />
     </>
