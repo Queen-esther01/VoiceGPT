@@ -96,9 +96,18 @@ export default function Home() {
 					},
 				});
 				await saveAudio(true, audioBlob);
+				audioChunksRef.current = [];
 			};
 		}
 	};
+
+	useEffect(() => {
+		return () => {
+		  if (mediaRecorderRef.current) {
+			mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+		  }
+		};
+	}, []);
 
 	useEffect(() => {
 		const storedAudio = JSON.parse(localStorage.getItem('audioStore') || '[]');
